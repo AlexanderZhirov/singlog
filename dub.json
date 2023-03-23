@@ -1,0 +1,16 @@
+{
+    "name": "singlog",
+    "authors": [
+        "Alexander Zhirov <alexander@zhirov.kz>"
+    ],
+    "homepage": "https://git.zhirov.kz/dlang/singlog.git",
+    "license": "GPL-2.0",
+    "copyright": "© Alexander Zhirov, 2023",
+    "description": "Singleton for simple logging",
+    "targetType": "library",
+    "targetPath": "lib",
+    "targetName": "singlog",
+    "dependencies": {
+        "datefmt": "~>1.0.4"
+    }
+}

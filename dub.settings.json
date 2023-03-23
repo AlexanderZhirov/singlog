@@ -1,0 +1,4 @@
+{
+    "defaultArchitecture": "x86_64",
+    "defaultCompiler": "ldc2"
+}
