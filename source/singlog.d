@@ -8,45 +8,51 @@ import std.file;
 import std.datetime;
 import datefmt;
 
+alias log = log;
+
 /++
     Singleton for simple logging
 
     ---
     // Setting the error output level
-    Log.msg.level(Log.DEBUG);
-    Log.msg.level(Log.ALERT);
-    Log.msg.level(Log.CRIT);
-    Log.msg.level(Log.ERR);
-    Log.msg.level(Log.WARNING);
-    Log.msg.level(Log.NOTICE);
-    Log.msg.level(Log.INFO);
+    log.level(log.DEBUG);
+    log.level(log.ALERT);
+    log.level(log.CRIT);
+    log.level(log.ERR);
+    log.level(log.WARNING);
+    log.level(log.NOTICE);
+    log.level(log.INFO);
     // Assigning a target output
-    Log.msg.output(Log.SYSLOG);
-    Log.msg.output(Log.STDOUT);
+    log.output(log.SYSLOG);
+    log.output(log.STDOUT);
+    log.output(log.FILE);
     // Setup and allowing writing to a file
-    Log.msg.file("./file.log");
-    Log.msg.fileOn();
-    Log.msg.fileOff();
+    log.file("./file.log");
+    log.fileOn();
+    log.fileOff();
     // Output of messages to the log
-    Log.msg.alert("Alert message");
-    Log.msg.critical("Critical message");
-    Log.msg.error("Error message");
-    Log.msg.warning("Warning message");
-    Log.msg.notice("Notice message");
-    Log.msg.informations("Information message");
-    Log.msg.debugging("Debugging message");
+    log.alert("Alert message");
+    log.critical("Critical message");
+    log.error("Error message");
+    log.warning("Warning message");
+    log.notice("Notice message");
+    log.informations("Information message");
+    log.debugging("Debugging message");
     ---
 +/
 class Log
 {
     private static Log log;
     private string path;
-    private bool writeToFile = false;
-    private bool fileExist = true;
+    private bool writeToFile = true;
     private static SysTime time;
 
     // Target output
-    enum {SYSLOG, STDOUT}
+    enum {
+        SYSLOG = 1,
+        STDOUT = 2,
+        FILE = 4
+    }
 
     // Message output level
     enum {
@@ -68,33 +74,34 @@ class Log
     {
         if (this.msgLevel > msgLevel)
             return;
-        if (this.msgOutput == STDOUT)
-            writeln(message);
-        else if (this.msgOutput == SYSLOG)
+        if (this.msgOutput & 1)
             syslog(priority, (message ~ "\0").ptr);
-        writeFile(message);
+        if (this.msgOutput & 2)
+            writeln(message);
+        if (this.msgOutput & 4)
+            writeFile(message);
     }
 
     private void writeFile(string message)
     {
-        if (!this.writeToFile || !this.fileExist)
+        if (!this.writeToFile)
             return;
 
         if (this.path.exists)
-            this.fileExist = true;
+            this.writeToFile = true;
         else
         {
-            this.fileExist = false;
+            this.writeToFile = false;
             this.warning("The log file does not exist: " ~ this.path);
-            this.fileExist = true;
         }
 
         File file;
 
         try {
             file = File(this.path, "a+");
+            this.writeToFile = true;
         } catch (Exception e) {
-            this.fileOff();
+            this.writeToFile = false;
             this.error("Unable to open the log file " ~ this.path);
             this.critical(e);
             return;
@@ -103,7 +110,7 @@ class Log
         try {            
             file.writeln(this.time.format("%Y.%m.%d %H:%M:%S: ") ~ message);
         } catch (Exception e) {
-            this.fileOff();
+            this.writeToFile = false;
             this.error("Unable to write to the log file " ~ this.path);
             this.critical(e);
             return;
@@ -112,7 +119,7 @@ class Log
         try {
             file.close();
         } catch (Exception e) {
-            this.fileOff();
+            this.writeToFile = false;
             this.error("Unable to close the log file " ~ this.path);
             this.critical(e);
             return;
@@ -133,9 +140,6 @@ class Log
     void output(int msgOutput) { this.msgOutput = msgOutput; }
     void level(int msgLevel) { this.msgLevel = msgLevel; }
     void file(string path) { this.path = path; }
-
-    void fileOn() { this.writeToFile = true; }
-    void fileOff() { this.writeToFile = false; }
 
     void alert(T)(T message) { writeLog(message.to!string, ALERT, LOG_ALERT); }
     void critical(T)(T message) { writeLog(message.to!string, CRIT, LOG_CRIT); }
