@@ -10,7 +10,7 @@ Singleton for simple logging
 ## Basic Usage
 
 ```d
-import simplog;
+import singlog;
 
 void main()
 {
@@ -19,6 +19,7 @@ void main()
     log.output(log.SYSLOG | log.FILE);
     log.file("./file.log");
     log.warning("Hello, World!");
+    log.w("The same thing");
 }
 ```
 
@@ -54,15 +55,15 @@ log.file("./file.log");
 Output of messages to the log:
 
 ```d
-log.alert("Alert message");
-log.critical("Critical message");
-log.error("Error message");
-log.warning("Warning message");
-log.notice("Notice message");
-log.informations("Information message");
-log.debugging("Debugging message");
+log.a("Alert message")          =>    log.alert("Alert message");
+log.c("Critical message")       =>    log.critical("Critical message");
+log.e("Error message")          =>    log.error("Error message");
+log.w("Warning message")        =>    log.warning("Warning message");
+log.n("Notice message")         =>    log.notice("Notice message");
+log.i("Information message")    =>    log.information("Information message");
+log.d("Debugging message")      =>    log.debugging("Debugging message");
 ```
 
 ## Dub
 
-Add a dependency on `"singlog": "~>0.2.0"`.
+Add a dependency on `"singlog": "~>0.2.1"`.

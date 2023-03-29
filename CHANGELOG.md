@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.2.1](https://git.zhirov.kz/dlang/singlog/compare/v0.2.0...v0.2.1) (2023.03.29)
+
+### New
+
+- Added aliases for the short form of function calls
+
+### Bug fixes
+
+- Calling the main object
+
 ## [v0.2.0](https://git.zhirov.kz/dlang/singlog/compare/v0.1.0...v0.2.0) (2023.03.29)
 
 - Removed functions `fileOn()` and `fileOff()`

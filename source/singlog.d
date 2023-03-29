@@ -8,7 +8,7 @@ import std.file;
 import std.datetime;
 import datefmt;
 
-alias log = log;
+alias log = Log.msg;
 
 /++
     Singleton for simple logging
@@ -148,4 +148,12 @@ class Log
     void notice(T)(T message) { writeLog(message.to!string, NOTICE, LOG_NOTICE); }
     void information(T)(T message) { writeLog(message.to!string, INFO, LOG_INFO); }
     void debugging(T)(T message) {writeLog(message.to!string, DEBUG, LOG_DEBUG); }
+
+    alias a = alert;
+    alias c = critical;
+    alias e = error;
+    alias w = warning;
+    alias n = notice;
+    alias i = information;
+    alias d = debugging;
 }
