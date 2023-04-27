@@ -18,6 +18,8 @@ alias log = Log.msg;
     Singleton for simple logging
 
     ---
+    // Setting the name of the logged program
+    log.name("My program");
     // Setting the error output level
     log.level(log.DEBUG);
     log.level(log.ALERT);
@@ -32,8 +34,6 @@ alias log = Log.msg;
     log.output(log.FILE);
     // Setup and allowing writing to a file
     log.file("./file.log");
-    log.fileOn();
-    log.fileOff();
     // Output of messages to the log
     log.alert("Alert message");
     log.critical("Critical message");
