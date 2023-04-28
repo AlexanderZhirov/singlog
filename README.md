@@ -38,13 +38,13 @@ log.name("My program");
 Setting the error output level:
 
 ```d
-log.level(log.DEBUG);
+log.level(log.DEBUGGING);
 log.level(log.ALERT);
-log.level(log.CRIT);
-log.level(log.ERR);
+log.level(log.CRITICAL);
+log.level(log.ERROR);
 log.level(log.WARNING);
 log.level(log.NOTICE);
-log.level(log.INFO);
+log.level(log.INFORMATION);
 ```
 
 Assigning a target output:
