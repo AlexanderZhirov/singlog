@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.3.0](https://git.zhirov.kz/dlang/singlog/compare/v0.2.1...v0.3.0) (2023.04.28)
+
+- Minor changes
+
+### New
+
+- Windows OS Logging support
+
 ## [v0.2.1](https://git.zhirov.kz/dlang/singlog/compare/v0.2.0...v0.2.1) (2023.03.29)
 
 ### New

@@ -2,3 +2,5 @@
 .dub
 *.o
 lib
+bin
+test.log

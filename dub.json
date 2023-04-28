@@ -7,9 +7,22 @@
     "license": "GPL-2.0",
     "copyright": "© Alexander Zhirov, 2023",
     "description": "Singleton for simple logging",
-    "targetType": "library",
-    "targetPath": "lib",
     "targetName": "singlog",
+    "configurations": [
+        {
+            "name": "library",
+            "targetType": "library",
+            "targetPath": "lib"
+        },
+        {
+            "name": "test",
+            "targetType": "executable",
+            "targetPath": "bin",
+            "targetName": "app",
+            "importPaths": ["source","tests"],
+            "sourcePaths": ["tests"]
+        }
+    ],
     "dependencies": {
         "datefmt": "~>1.0.4"
     }

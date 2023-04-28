@@ -1,9 +1,13 @@
 module singlog;
 
-import core.sys.posix.syslog;
+version(Windows)
+    import core.sys.windows.windows;
+else
+    import core.sys.posix.syslog;
+
+import std.string;
 import std.stdio;
 import std.conv;
-import std.meta;
 import std.file;
 import std.datetime;
 import datefmt;
@@ -14,6 +18,8 @@ alias log = Log.msg;
     Singleton for simple logging
 
     ---
+    // Setting the name of the logged program
+    log.name("My program");
     // Setting the error output level
     log.level(log.DEBUG);
     log.level(log.ALERT);
@@ -28,8 +34,6 @@ alias log = Log.msg;
     log.output(log.FILE);
     // Setup and allowing writing to a file
     log.file("./file.log");
-    log.fileOn();
-    log.fileOff();
     // Output of messages to the log
     log.alert("Alert message");
     log.critical("Critical message");
@@ -40,57 +44,87 @@ alias log = Log.msg;
     log.debugging("Debugging message");
     ---
 +/
-class Log
-{
-    private static Log log;
-    private string path;
-    private bool writeToFile = true;
-    private static SysTime time;
+class Log {
+private:
+    static Log log;
+    string path;
+    string nameProgram = "singlog";
+    bool writeToFile = true;
+    
+    this() {}
 
-    // Target output
-    enum {
+version(Windows) {
+    public enum {
+        DEBUGGING   = 0,
+        ALERT       = 1,
+        CRITICAL    = 1,
+        ERROR       = 1,
+        WARNING     = 2,
+        NOTICE      = 3,
+        INFORMATION = 3,
+    }
+    WORD[] sysLevel = [
+        EVENTLOG_SUCCESS,
+        EVENTLOG_ERROR_TYPE,
+        EVENTLOG_WARNING_TYPE,
+        EVENTLOG_INFORMATION_TYPE
+    ];
+
+    void syslog(WORD priority, LPCSTR message) {
+        HANDLE handleEventLog = RegisterEventSourceA(NULL, this.nameProgram.toStringz());
+
+        if (handleEventLog == NULL)
+            return;
+        
+        ReportEventA(handleEventLog, priority, 0, 0, NULL, 1, 0, &message, NULL);
+        DeregisterEventSource(handleEventLog);
+    }
+} else version(Posix) {
+    public enum {
+        DEBUGGING   = 0,
+        ALERT       = 1,
+        CRITICAL    = 2,
+        ERROR       = 3,
+        WARNING     = 4,
+        NOTICE      = 5,
+        INFORMATION = 6
+    }
+    int[] sysLevel = [
+        LOG_DEBUG,
+        LOG_ALERT,
+        LOG_CRIT,
+        LOG_ERR,
+        LOG_WARNING,
+        LOG_NOTICE,
+        LOG_INFO
+    ];
+}
+
+    public enum {
         SYSLOG = 1,
         STDOUT = 2,
         FILE = 4
     }
 
-    // Message output level
-    enum {
-        DEBUG   = 0,
-        CRIT    = 1,
-        ERR     = 2,
-        WARNING = 3,
-        NOTICE  = 4,
-        INFO    = 5,
-        ALERT   = 6
-    }
-    
     int msgOutput = STDOUT;
-    int msgLevel = INFO;
+    int msgLevel = INFORMATION;
 
-    private this() {}
-
-    private void writeLog(string message, int msgLevel, int priority)
-    {
+    void writeLog(string message, int msgLevel) {
         if (this.msgLevel > msgLevel)
             return;
         if (this.msgOutput & 1)
-            syslog(priority, (message ~ "\0").ptr);
+            syslog(sysLevel[msgLevel], message.toStringz());
         if (this.msgOutput & 2)
             writeln(message);
         if (this.msgOutput & 4)
             writeFile(message);
     }
 
-    private void writeFile(string message)
-    {
+    void writeFile(string message) {
         if (!this.writeToFile)
             return;
 
-        if (this.path.exists)
-            this.writeToFile = true;
-        else
-        {
+        if (!this.path.exists) {
             this.writeToFile = false;
             this.warning("The log file does not exist: " ~ this.path);
         }
@@ -103,16 +137,16 @@ class Log
         } catch (Exception e) {
             this.writeToFile = false;
             this.error("Unable to open the log file " ~ this.path);
-            this.critical(e);
+            this.information(e);
             return;
         }
 
         try {            
-            file.writeln(this.time.format("%Y.%m.%d %H:%M:%S: ") ~ message);
+            file.writeln(Clock.currTime().format("%Y.%m.%d %H:%M:%S: ") ~ message);
         } catch (Exception e) {
             this.writeToFile = false;
             this.error("Unable to write to the log file " ~ this.path);
-            this.critical(e);
+            this.information(e);
             return;
         }
 
@@ -121,33 +155,31 @@ class Log
         } catch (Exception e) {
             this.writeToFile = false;
             this.error("Unable to close the log file " ~ this.path);
-            this.critical(e);
+            this.information(e);
             return;
         }
     }
     
-    @property static Log msg()
-    {
+public:
+    @property static Log msg() {
         if (this.log is null)
-        {
             this.log = new Log;
-            this.time = Clock.currTime();
-        }
 
         return this.log;
     }
 
-    void output(int msgOutput) { this.msgOutput = msgOutput; }
-    void level(int msgLevel) { this.msgLevel = msgLevel; }
-    void file(string path) { this.path = path; }
+    Log output(int msgOutput) { this.msgOutput = msgOutput; return this.log; }
+    Log name(string nameProgram) { this.nameProgram = nameProgram; return this.log; }
+    Log file(string path) { this.path = path; return this.log; }
+    Log level(int msgLevel) { this.msgLevel = msgLevel; return this.log; }
 
-    void alert(T)(T message) { writeLog(message.to!string, ALERT, LOG_ALERT); }
-    void critical(T)(T message) { writeLog(message.to!string, CRIT, LOG_CRIT); }
-    void error(T)(T message) { writeLog(message.to!string, ERR, LOG_ERR); }
-    void warning(T)(T message) { writeLog(message.to!string, WARNING, LOG_WARNING); }
-    void notice(T)(T message) { writeLog(message.to!string, NOTICE, LOG_NOTICE); }
-    void information(T)(T message) { writeLog(message.to!string, INFO, LOG_INFO); }
-    void debugging(T)(T message) {writeLog(message.to!string, DEBUG, LOG_DEBUG); }
+    void alert(T)(T message) { writeLog(message.to!string, ALERT); }
+    void critical(T)(T message) { writeLog(message.to!string, CRITICAL); }
+    void error(T)(T message) { writeLog(message.to!string, ERROR); }
+    void warning(T)(T message) { writeLog(message.to!string, WARNING); }
+    void notice(T)(T message) { writeLog(message.to!string, NOTICE); }
+    void information(T)(T message) { writeLog(message.to!string, INFORMATION); }
+    void debugging(T)(T message) { writeLog(message.to!string, DEBUG); }
 
     alias a = alert;
     alias c = critical;
