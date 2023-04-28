@@ -124,9 +124,7 @@ version(Windows) {
         if (!this.writeToFile)
             return;
 
-        if (this.path.exists)
-            this.writeToFile = true;
-        else {
+        if (!this.path.exists) {
             this.writeToFile = false;
             this.warning("The log file does not exist: " ~ this.path);
         }

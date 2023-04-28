@@ -1,4 +1,4 @@
-# singlog
+![singlog](singlog.png)
 
 [![license](https://img.shields.io/github/license/AlexanderZhirov/singlog.svg?sort=semver&style=for-the-badge&color=green)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 [![main](https://img.shields.io/badge/dynamic/json.svg?label=git.zhirov.kz&style=for-the-badge&url=https://git.zhirov.kz/api/v1/repos/dlang/singlog/tags&query=$[0].name&color=violet)](https://git.zhirov.kz/dlang/singlog)
@@ -14,14 +14,16 @@ Singleton for simple logging
 ```d
 import singlog;
 
-void main()
-{
-    log.level(log.DEBUG);
-    // write to syslog and file
-    log.output(log.SYSLOG | log.FILE);
-    log.file("./file.log");
-    log.warning("Hello, World!");
-    log.w("The same thing");
+void main(string[] argv) {
+    log.output(log.SYSLOG | log.STDOUT | log.FILE)  // write to syslog, standard output stream and file
+        .name(argv[0])                              // program name as an identifier (for Windows OS)
+        .level(log.DEBUGGING)                       // logging level
+        .file("./test.log");                        // the path to the log file
+
+    log.e("This is an error message");
+    log.error("And this is also an error message");
+    log.w("This is a warning message");
+    log.i("This is an information message");
 }
 ```
 
