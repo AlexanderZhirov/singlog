@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.1](https://git.zhirov.kz/dlang/singlog/compare/v0.3.0...v0.3.1) (2023.05.30)
+
+### Bug fixes
+
+- Log of debug messages
+
 ## [v0.3.0](https://git.zhirov.kz/dlang/singlog/compare/v0.2.1...v0.3.0) (2023.04.28)
 
 - Minor changes

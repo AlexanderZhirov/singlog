@@ -21,13 +21,13 @@ alias log = Log.msg;
     // Setting the name of the logged program
     log.name("My program");
     // Setting the error output level
-    log.level(log.DEBUG);
+    log.level(log.DEBUGGING);
     log.level(log.ALERT);
-    log.level(log.CRIT);
-    log.level(log.ERR);
+    log.level(log.CRITICAL);
+    log.level(log.ERROR);
     log.level(log.WARNING);
     log.level(log.NOTICE);
-    log.level(log.INFO);
+    log.level(log.INFORMATION);
     // Assigning a target output
     log.output(log.SYSLOG);
     log.output(log.STDOUT);
@@ -35,13 +35,13 @@ alias log = Log.msg;
     // Setup and allowing writing to a file
     log.file("./file.log");
     // Output of messages to the log
+    log.debugging("Debugging message");
     log.alert("Alert message");
     log.critical("Critical message");
     log.error("Error message");
     log.warning("Warning message");
     log.notice("Notice message");
     log.informations("Information message");
-    log.debugging("Debugging message");
     ---
 +/
 class Log {
@@ -179,7 +179,7 @@ public:
     void warning(T)(T message) { writeLog(message.to!string, WARNING); }
     void notice(T)(T message) { writeLog(message.to!string, NOTICE); }
     void information(T)(T message) { writeLog(message.to!string, INFORMATION); }
-    void debugging(T)(T message) { writeLog(message.to!string, DEBUG); }
+    void debugging(T)(T message) { writeLog(message.to!string, DEBUGGING); }
 
     alias a = alert;
     alias c = critical;

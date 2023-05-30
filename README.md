@@ -75,4 +75,4 @@ log.d("Debugging message")      =>    log.debugging("Debugging message");
 
 ## DUB
 
-Add a dependency on `"singlog": "~>0.3.0"`.
+Add a dependency on `"singlog": "~>0.3.1"`.
