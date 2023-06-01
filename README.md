@@ -27,6 +27,8 @@ void main(string[] argv) {
 }
 ```
 
+![output](tests/output.png)
+
 ## Examples
 
 Setting the name of the logged program (it matters for Windows OS):
@@ -75,4 +77,4 @@ log.d("Debugging message")      =>    log.debugging("Debugging message");
 
 ## DUB
 
-Add a dependency on `"singlog": "~>0.3.1"`.
+Add a dependency on `"singlog": "~>0.3.2"`.

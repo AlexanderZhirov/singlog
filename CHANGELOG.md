@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.2](https://git.zhirov.kz/dlang/singlog/compare/v0.3.1...v0.3.2) (2023.06.01)
+
+- Printing information about the type of the logged message to the standard output stream and file
+- Printing the date and time to the standard output stream
+
 ## [v0.3.1](https://git.zhirov.kz/dlang/singlog/compare/v0.3.0...v0.3.1) (2023.05.30)
 
 ### Bug fixes
