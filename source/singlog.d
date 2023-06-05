@@ -99,10 +99,10 @@ version(Windows) {
     ];
 
     void writestdout(string time, string message, int level) {
-        writeln("%s %s".format(time,
-            this._ccolor ?
-                this._color[level].format(this._type[level], message) :
-                    "%s %s".format(this._type[level], message)
+        writeln(
+            "%s %s".format(
+                time,
+                (this._ccolor ? this._color[level] : "%s %s").format(this._type[level], message)
             )
         );
     }
