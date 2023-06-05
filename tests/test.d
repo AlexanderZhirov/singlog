@@ -6,8 +6,16 @@ void main(string[] argv) {
         .level(log.DEBUGGING)                       // logging level
         .file("./test.log");                        // the path to the log file
 
-    log.e("This is an error message");
-    log.error("And this is also an error message");
-    log.w("This is a warning message");
-    log.i("This is an information message");
+    // log.e("This is an error message");
+    // log.error("And this is also an error message");
+    // log.w("This is a warning message");
+    // log.i("This is an information message");
+
+    log.i("information");
+    log.n("notice");
+    log.w("warning");
+    log.e("error");
+    log.c("critical");
+    log.a("alert");
+    log.d("debug");
 }

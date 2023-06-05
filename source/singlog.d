@@ -100,6 +100,16 @@ version(Windows) {
     ];
 }
 
+    string[] color = [
+        "\u001b[2;30m[DEBUG]:\u001b[0;30m %s\u001b[0;0m",
+        "\u001b[1;34m[ALERT]:\u001b[0;34m %s\u001b[0;0m",
+        "\u001b[1;35m[CRITICAL]:\u001b[0;35m %s\u001b[0;0m",
+        "\u001b[1;31m[ERROR]:\u001b[0;31m %s\u001b[0;0m",
+        "\u001b[1;33m[WARNING]:\u001b[0;33m %s\u001b[0;0m",
+        "\u001b[1;36m[NOTICE]:\u001b[0;36m %s\u001b[0;0m",
+        "\u001b[1;32m[INFO]:\u001b[0;32m %s\u001b[0;0m",
+    ];
+
     public enum {
         SYSLOG = 1,
         STDOUT = 2,
@@ -109,13 +119,13 @@ version(Windows) {
     int msgOutput = STDOUT;
     int msgLevel = INFORMATION;
 
-    void writeLog(string message, string type, int msgLevel) {
+    void writeLog(string message, int msgLevel) {
         if (this.msgLevel > msgLevel)
             return;
         if (this.msgOutput & 1)
             syslog(sysLevel[msgLevel], message.toStringz());
         if (this.msgOutput & 6)
-            message = format("%s [%s]: %s", Clock.currTime().format("%Y.%m.%d %H:%M:%S"), type, message);
+            message = Clock.currTime().format("%Y.%m.%d %H:%M:%S ") ~ color[msgLevel].format(message);
         if (this.msgOutput & 2)
             writeln(message);
         if (this.msgOutput & 4)
@@ -175,13 +185,13 @@ public:
     Log file(string path) { this.path = path; return this.log; }
     Log level(int msgLevel) { this.msgLevel = msgLevel; return this.log; }
 
-    void alert(T)(T message) { writeLog(message.to!string, "ALERT", ALERT); }
-    void critical(T)(T message) { writeLog(message.to!string, "CRITICAL", CRITICAL); }
-    void error(T)(T message) { writeLog(message.to!string, "ERROR", ERROR); }
-    void warning(T)(T message) { writeLog(message.to!string, "WARNING", WARNING); }
-    void notice(T)(T message) { writeLog(message.to!string, "NOTICE", NOTICE); }
-    void information(T)(T message) { writeLog(message.to!string, "INFORMATION", INFORMATION); }
-    void debugging(T)(T message) { writeLog(message.to!string, "DEBUGGING", DEBUGGING); }
+    void alert(T)(T message) { writeLog(message.to!string, ALERT); }
+    void critical(T)(T message) { writeLog(message.to!string, CRITICAL); }
+    void error(T)(T message) { writeLog(message.to!string, ERROR); }
+    void warning(T)(T message) { writeLog(message.to!string, WARNING); }
+    void notice(T)(T message) { writeLog(message.to!string, NOTICE); }
+    void information(T)(T message) { writeLog(message.to!string, INFORMATION); }
+    void debugging(T)(T message) { writeLog(message.to!string, DEBUGGING); }
 
     alias a = alert;
     alias c = critical;
