@@ -19,7 +19,9 @@ alias log = Log.msg;
 
     ---
     // Setting the name of the logged program
-    log.name("My program");
+    log.program("My program");
+    // Setting the status of color text output
+    log.color(true);
     // Setting the error output level
     log.level(log.DEBUGGING);
     log.level(log.ALERT);
@@ -46,24 +48,18 @@ alias log = Log.msg;
 +/
 class Log {
 private:
-    static Log log;
-    string path;
-    string nameProgram = "singlog";
-    bool writeToFile = true;
+    static Log _log;
+    string _path;
+    string _name = "singlog";
+    bool _writeToFile = true;
+    bool _ccolor = false;
     
     this() {}
 
 version(Windows) {
-    public enum {
-        DEBUGGING   = 0,
-        ALERT       = 1,
-        CRITICAL    = 1,
-        ERROR       = 1,
-        WARNING     = 2,
-        NOTICE      = 3,
-        INFORMATION = 3,
-    }
-    WORD[] sysLevel = [
+    int[] _sysLevel = [0, 1, 1, 1, 2, 3, 4];
+
+    WORD[] _sysLevelOS = [
         EVENTLOG_SUCCESS,
         EVENTLOG_ERROR_TYPE,
         EVENTLOG_WARNING_TYPE,
@@ -80,6 +76,38 @@ version(Windows) {
         DeregisterEventSource(handleEventLog);
     }
 } else version(Posix) {
+    int[] _sysLevel = [0, 1, 2, 3, 4, 5, 6];
+
+    int[] _sysLevelOS = [
+        LOG_DEBUG,
+        LOG_ALERT,
+        LOG_CRIT,
+        LOG_ERR,
+        LOG_WARNING,
+        LOG_NOTICE,
+        LOG_INFO
+    ];
+
+    string[] _color = [
+        "\x1b[1;32m%s\x1b[0;32m %s\x1b[0;0m",   // green
+        "\x1b[1;34m%s\x1b[0;34m %s\x1b[0;0m",   // blue
+        "\x1b[1;35m%s\x1b[0;35m %s\x1b[0;0m",   // magenta
+        "\x1b[1;31m%s\x1b[0;31m %s\x1b[0;0m",   // red
+        "\x1b[1;33m%s\x1b[0;33m %s\x1b[0;0m",   // yellow
+        "\x1b[1;36m%s\x1b[0;36m %s\x1b[0;0m",   // cyan
+        "\x1b[1;97m%s\x1b[0;97m %s\x1b[0;0m",   // white
+    ];
+
+    void writestdout(string time, string message, int level) {
+        writeln("%s %s".format(time,
+            this._ccolor ?
+                this._color[level].format(this._type[level], message) :
+                    "%s %s".format(this._type[level], message)
+            )
+        );
+    }
+}
+
     public enum {
         DEBUGGING   = 0,
         ALERT       = 1,
@@ -89,25 +117,15 @@ version(Windows) {
         NOTICE      = 5,
         INFORMATION = 6
     }
-    int[] sysLevel = [
-        LOG_DEBUG,
-        LOG_ALERT,
-        LOG_CRIT,
-        LOG_ERR,
-        LOG_WARNING,
-        LOG_NOTICE,
-        LOG_INFO
-    ];
-}
 
-    string[] color = [
-        "\u001b[2;30m[DEBUG]:\u001b[0;30m %s\u001b[0;0m",
-        "\u001b[1;34m[ALERT]:\u001b[0;34m %s\u001b[0;0m",
-        "\u001b[1;35m[CRITICAL]:\u001b[0;35m %s\u001b[0;0m",
-        "\u001b[1;31m[ERROR]:\u001b[0;31m %s\u001b[0;0m",
-        "\u001b[1;33m[WARNING]:\u001b[0;33m %s\u001b[0;0m",
-        "\u001b[1;36m[NOTICE]:\u001b[0;36m %s\u001b[0;0m",
-        "\u001b[1;32m[INFO]:\u001b[0;32m %s\u001b[0;0m",
+    string[] _type = [
+        "[DEBUG]:",
+        "[ALERT]:",
+        "[CRITICAL]:",
+        "[ERROR]:",
+        "[WARNING]:",
+        "[NOTICE]:",
+        "[INFO]:"
     ];
 
     public enum {
@@ -116,48 +134,49 @@ version(Windows) {
         FILE = 4
     }
 
-    int msgOutput = STDOUT;
-    int msgLevel = INFORMATION;
+    int _output = STDOUT;
+    int _level = INFORMATION;
 
-    void writeLog(string message, int msgLevel) {
-        if (this.msgLevel > msgLevel)
+    void writeLog(string message, int level) {
+        string time;
+        if (this._level > level)
             return;
-        if (this.msgOutput & 1)
-            syslog(sysLevel[msgLevel], message.toStringz());
-        if (this.msgOutput & 6)
-            message = Clock.currTime().format("%Y.%m.%d %H:%M:%S ") ~ color[msgLevel].format(message);
-        if (this.msgOutput & 2)
-            writeln(message);
-        if (this.msgOutput & 4)
-            writeFile(message);
+        if (this._output & 1)
+            syslog(_sysLevelOS[_sysLevel[level]], message.toStringz());
+        if (this._output & 6)
+            time = Clock.currTime().format("%Y.%m.%d %H:%M:%S");
+        if (this._output & 2)
+            writestdout(time, message, level);
+        if (this._output & 4)
+            writeFile(time, message, level);
     }
 
-    void writeFile(string message) {
-        if (!this.writeToFile)
+    void writeFile(string time, string message, int level) {
+        if (!this._writeToFile)
             return;
 
-        if (!this.path.exists) {
-            this.writeToFile = false;
-            this.warning("The log file does not exist: " ~ this.path);
+        if (!this._path.exists) {
+            this._writeToFile = false;
+            this.warning("The log file does not exist: " ~ this._path);
         }
 
         File file;
 
         try {
-            file = File(this.path, "a+");
-            this.writeToFile = true;
+            file = File(this._path, "a+");
+            this._writeToFile = true;
         } catch (Exception e) {
-            this.writeToFile = false;
-            this.error("Unable to open the log file " ~ this.path);
+            this._writeToFile = false;
+            this.error("Unable to open the log file " ~ this._path);
             this.information(e);
             return;
         }
 
         try {            
-            file.writeln(message);
+            file.writeln("%s %s %s".format(time, this._type[level], message));
         } catch (Exception e) {
-            this.writeToFile = false;
-            this.error("Unable to write to the log file " ~ this.path);
+            this._writeToFile = false;
+            this.error("Unable to write to the log file " ~ this._path);
             this.information(e);
             return;
         }
@@ -165,8 +184,8 @@ version(Windows) {
         try {
             file.close();
         } catch (Exception e) {
-            this.writeToFile = false;
-            this.error("Unable to close the log file " ~ this.path);
+            this._writeToFile = false;
+            this.error("Unable to close the log file " ~ this._path);
             this.information(e);
             return;
         }
@@ -174,16 +193,17 @@ version(Windows) {
     
 public:
     @property static Log msg() {
-        if (this.log is null)
-            this.log = new Log;
+        if (this._log is null)
+            this._log = new Log;
 
-        return this.log;
+        return this._log;
     }
 
-    Log output(int msgOutput) { this.msgOutput = msgOutput; return this.log; }
-    Log name(string nameProgram) { this.nameProgram = nameProgram; return this.log; }
-    Log file(string path) { this.path = path; return this.log; }
-    Log level(int msgLevel) { this.msgLevel = msgLevel; return this.log; }
+    Log output(int outs) { this._output = outs; return this._log; }
+    Log program(string name) { this._name = name; return this._log; }
+    Log file(string path) { this._path = path; return this._log; }
+    Log level(int lvl) { this._level = lvl; return this._log; }
+    Log color(bool condition) { this._ccolor = condition; return this._log; }
 
     void alert(T)(T message) { writeLog(message.to!string, ALERT); }
     void critical(T)(T message) { writeLog(message.to!string, CRITICAL); }
