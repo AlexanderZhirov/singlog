@@ -2,7 +2,7 @@ module singlog;
 
 version(Windows)
     import core.sys.windows.windows;
-else
+else version(Posix)
     import core.sys.posix.syslog;
 
 import std.string;
@@ -57,28 +57,67 @@ private:
     this() {}
 
 version(Windows) {
-    int[] _sysLevel = [0, 1, 1, 1, 2, 3, 4];
+    int[] _sysPriority = [0, 1, 1, 1, 2, 3, 3];
 
-    WORD[] _sysLevelOS = [
+    WORD[] _sysPriorityOS = [
         EVENTLOG_SUCCESS,
         EVENTLOG_ERROR_TYPE,
         EVENTLOG_WARNING_TYPE,
         EVENTLOG_INFORMATION_TYPE
     ];
 
-    void syslog(WORD priority, LPCSTR message) {
-        HANDLE handleEventLog = RegisterEventSourceA(NULL, this.nameProgram.toStringz());
+    void writesyslog(string message, WORD priority) {
+        import std.utf: toUTF16z;
+        auto wMessage = message.toUTF16z();
+        HANDLE handleEventLog = RegisterEventSourceA(NULL, this._name.toStringz());
 
         if (handleEventLog == NULL)
             return;
         
-        ReportEventA(handleEventLog, priority, 0, 0, NULL, 1, 0, &message, NULL);
+        ReportEventW(handleEventLog, priority, 0, 0, NULL, 1, 0, &wMessage, NULL);
         DeregisterEventSource(handleEventLog);
     }
-} else version(Posix) {
-    int[] _sysLevel = [0, 1, 2, 3, 4, 5, 6];
 
-    int[] _sysLevelOS = [
+    WORD[] _color = [
+        FOREGROUND_GREEN,
+        FOREGROUND_BLUE,
+        FOREGROUND_RED | FOREGROUND_BLUE,
+        FOREGROUND_RED,
+        FOREGROUND_RED | FOREGROUND_GREEN,
+        FOREGROUND_BLUE | FOREGROUND_GREEN,
+        FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN
+    ];
+
+    void colorTextOutput(string time, wstring message, int priority) {
+        HANDLE handle =  GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO defaultConsole;
+        GetConsoleScreenBufferInfo(handle, &defaultConsole);
+
+        writef("%s ", time);
+        SetConsoleTextAttribute(handle, this._color[priority] | FOREGROUND_INTENSITY);
+        write(this._type[priority]);
+        SetConsoleTextAttribute(handle, this._color[priority]);
+        WriteConsoleW(handle, message.ptr, cast(DWORD)message.length, NULL, NULL);
+        SetConsoleTextAttribute(handle, defaultConsole.wAttributes);
+    }
+
+    void defaultTextOutput(string time, wstring message, int priority) {
+        HANDLE handle =  GetStdHandle(STD_OUTPUT_HANDLE);
+        writef("%s %s", time, this._type[priority]);
+        WriteConsoleW(handle, message.ptr, cast(DWORD)message.length, NULL, NULL);
+    }
+
+    void writestdout(string time, string message, int priority) {
+        wstring wMessage = " %s\n".format(message).to!wstring;
+        this._ccolor ?
+            colorTextOutput(time, wMessage, priority) :
+                defaultTextOutput(time, wMessage, priority);
+    }
+
+} else version(Posix) {
+    int[] _sysPriority = [0, 1, 2, 3, 4, 5, 6];
+
+    int[] _sysPriorityOS = [
         LOG_DEBUG,
         LOG_ALERT,
         LOG_CRIT,
@@ -98,13 +137,15 @@ version(Windows) {
         "\x1b[1;97m%s\x1b[0;97m %s\x1b[0;0m",   // white
     ];
 
-    void writestdout(string time, string message, int level) {
-        writeln(
-            "%s %s".format(
+    void writestdout(string time, string message, int priority) {
+        writefln("%s %s",
                 time,
-                (this._ccolor ? this._color[level] : "%s %s").format(this._type[level], message)
-            )
+                (this._ccolor ? this._color[priority] : "%s %s").format(this._type[priority], message)
         );
+    }
+
+    void writesyslog(string message, int priority) {
+        syslog(priority, message.toStringz());
     }
 }
 
@@ -135,23 +176,23 @@ version(Windows) {
     }
 
     int _output = STDOUT;
-    int _level = INFORMATION;
+    int _priority = INFORMATION;
 
-    void writeLog(string message, int level) {
+    void writelog(string message, int priority) {
         string time;
-        if (this._level > level)
+        if (this._priority > priority)
             return;
         if (this._output & 1)
-            syslog(_sysLevelOS[_sysLevel[level]], message.toStringz());
+            writesyslog(message, _sysPriorityOS[_sysPriority[priority]]);
         if (this._output & 6)
             time = Clock.currTime().format("%Y.%m.%d %H:%M:%S");
         if (this._output & 2)
-            writestdout(time, message, level);
+            writestdout(time, message, priority);
         if (this._output & 4)
-            writeFile(time, message, level);
+            writefile(time, message, priority);
     }
 
-    void writeFile(string time, string message, int level) {
+    void writefile(string time, string message, int priority) {
         if (!this._writeToFile)
             return;
 
@@ -173,7 +214,7 @@ version(Windows) {
         }
 
         try {            
-            file.writeln("%s %s %s".format(time, this._type[level], message));
+            file.writefln("%s %s %s", time, this._type[priority], message);
         } catch (Exception e) {
             this._writeToFile = false;
             this.error("Unable to write to the log file " ~ this._path);
@@ -202,16 +243,16 @@ public:
     Log output(int outs) { this._output = outs; return this._log; }
     Log program(string name) { this._name = name; return this._log; }
     Log file(string path) { this._path = path; return this._log; }
-    Log level(int lvl) { this._level = lvl; return this._log; }
+    Log level(int priority) { this._priority = priority; return this._log; }
     Log color(bool condition) { this._ccolor = condition; return this._log; }
 
-    void alert(T)(T message) { writeLog(message.to!string, ALERT); }
-    void critical(T)(T message) { writeLog(message.to!string, CRITICAL); }
-    void error(T)(T message) { writeLog(message.to!string, ERROR); }
-    void warning(T)(T message) { writeLog(message.to!string, WARNING); }
-    void notice(T)(T message) { writeLog(message.to!string, NOTICE); }
-    void information(T)(T message) { writeLog(message.to!string, INFORMATION); }
-    void debugging(T)(T message) { writeLog(message.to!string, DEBUGGING); }
+    void alert(T)(T message) { writelog(message.to!string, ALERT); }
+    void critical(T)(T message) { writelog(message.to!string, CRITICAL); }
+    void error(T)(T message) { writelog(message.to!string, ERROR); }
+    void warning(T)(T message) { writelog(message.to!string, WARNING); }
+    void notice(T)(T message) { writelog(message.to!string, NOTICE); }
+    void information(T)(T message) { writelog(message.to!string, INFORMATION); }
+    void debugging(T)(T message) { writelog(message.to!string, DEBUGGING); }
 
     alias a = alert;
     alias c = critical;

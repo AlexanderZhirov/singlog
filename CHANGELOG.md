@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.4.0](https://git.zhirov.kz/dlang/singlog/compare/v0.3.2...v0.4.0) (2023.06.07)
+
+### New
+
+- Color output of messages to the terminal and console
+
+### Bug fixes
+
+- In Windows, unicode messages are output without distortion to the system log and console (thanks [Adam D. Ruppe](https://arsdnet.net/))
+
 ## [v0.3.2](https://git.zhirov.kz/dlang/singlog/compare/v0.3.1...v0.3.2) (2023.06.01)
 
 - Printing information about the type of the logged message to the standard output stream and file

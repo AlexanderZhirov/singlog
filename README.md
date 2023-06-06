@@ -16,25 +16,37 @@ import singlog;
 
 void main(string[] argv) {
     log.output(log.SYSLOG | log.STDOUT | log.FILE)  // write to syslog, standard output stream and file
-        .name(argv[0])                              // program name as an identifier (for Windows OS)
+        .program(argv[0])                           // program name as an identifier (for Windows OS)
         .level(log.DEBUGGING)                       // logging level
+        .color(true)                                // color text output
         .file("./test.log");                        // the path to the log file
 
-    log.e("This is an error message");
-    log.error("And this is also an error message");
-    log.w("This is a warning message");
     log.i("This is an information message");
+    log.n("This is a notice message");
+    log.w("This is a warning message");
+    log.e("This is an error message");
+    log.c("This is a critical message");
+    log.a("This is an alert message");
+    log.d("This is a debug message");
 }
 ```
 
-![output](tests/output.png)
+![output](tests/terminal.png)
+
+![output](tests/cmd.png)
 
 ## Examples
 
 Setting the name of the logged program (it matters for Windows OS):
 
 ```d
-log.name("My program");
+log.program("My program");
+```
+
+Color output setting (`false` by default):
+
+```d
+log.color(true);
 ```
 
 Setting the error output level:
@@ -77,4 +89,4 @@ log.d("Debugging message")      =>    log.debugging("Debugging message");
 
 ## DUB
 
-Add a dependency on `"singlog": "~>0.3.2"`.
+Add a dependency on `"singlog": "~>0.4.0"`.
