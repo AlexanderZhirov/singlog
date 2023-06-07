@@ -18,7 +18,7 @@
             "name": "test",
             "targetType": "executable",
             "targetPath": "bin",
-            "targetName": "app",
+            "targetName": "test",
             "importPaths": ["source","tests"],
             "sourcePaths": ["tests"]
         }
