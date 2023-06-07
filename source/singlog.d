@@ -50,7 +50,7 @@ class Log {
 private:
     static Log _log;
     string _path;
-    string _name = "singlog";
+    wstring _name = "singlog";
     bool _writeToFile = true;
     bool _ccolor = false;
     
@@ -69,7 +69,7 @@ version(Windows) {
     void writesyslog(string message, WORD priority) {
         import std.utf: toUTF16z;
         auto wMessage = message.toUTF16z();
-        HANDLE handleEventLog = RegisterEventSourceA(NULL, this._name.toStringz());
+        HANDLE handleEventLog = RegisterEventSourceW(NULL, this._name.ptr);
 
         if (handleEventLog == NULL)
             return;
@@ -79,13 +79,13 @@ version(Windows) {
     }
 
     WORD[] _color = [
-        FOREGROUND_GREEN,
-        FOREGROUND_BLUE,
-        FOREGROUND_RED | FOREGROUND_BLUE,
-        FOREGROUND_RED,
-        FOREGROUND_RED | FOREGROUND_GREEN,
-        FOREGROUND_BLUE | FOREGROUND_GREEN,
-        FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN
+        FOREGROUND_GREEN,                                       // green
+        FOREGROUND_BLUE,                                        // blue
+        FOREGROUND_RED | FOREGROUND_BLUE,                       // magenta
+        FOREGROUND_RED,                                         // red
+        FOREGROUND_RED | FOREGROUND_GREEN,                      // yellow
+        FOREGROUND_BLUE | FOREGROUND_GREEN,                     // cyan
+        FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN     // white
     ];
 
     void colorTextOutput(string time, wstring message, int priority) {
@@ -241,7 +241,7 @@ public:
     }
 
     Log output(int outs) { this._output = outs; return this._log; }
-    Log program(string name) { this._name = name; return this._log; }
+    Log program(string name) { this._name = name.to!wstring; return this._log; }
     Log file(string path) { this._path = path; return this._log; }
     Log level(int priority) { this._priority = priority; return this._log; }
     Log color(bool condition) { this._ccolor = condition; return this._log; }

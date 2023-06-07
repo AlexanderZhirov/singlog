@@ -2,6 +2,8 @@
 
 ## [v0.4.0](https://git.zhirov.kz/dlang/singlog/compare/v0.3.2...v0.4.0) (2023.06.07)
 
+- Part of the code has been changed/rewritten
+
 ### New
 
 - Color output of messages to the terminal and console

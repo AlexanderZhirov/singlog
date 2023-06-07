@@ -43,7 +43,7 @@ Setting the name of the logged program (it matters for Windows OS):
 log.program("My program");
 ```
 
-Color output setting (`false` by default):
+Setting the status of color text output (`false` by default):
 
 ```d
 log.color(true);
