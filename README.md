@@ -15,11 +15,11 @@ Singleton for simple logging
 import singlog;
 
 void main(string[] argv) {
-    log.output(log.SYSLOG | log.STDOUT | log.FILE)  // write to syslog, standard output stream and file
-        .program(argv[0])                           // program name as an identifier (for Windows OS)
-        .level(log.DEBUGGING)                       // logging level
-        .color(true)                                // color text output
-        .file("./test.log");                        // the path to the log file
+    log.output(log.output.syslog.stderr.stdout.file)    // write to syslog, standard error/output streams and file
+        .program(argv[0])                               // program name as an identifier (for Windows OS)
+        .level(log.level.debugging)                     // logging level
+        .color(true)                                    // color text output
+        .file("./test.log");                            // the path to the log file
 
     log.i("This is an information message");
     log.n("This is a notice message");
@@ -28,6 +28,9 @@ void main(string[] argv) {
     log.c("This is a critical message");
     log.a("This is an alert message");
     log.d("This is a debug message");
+
+    log.now(log.output.stdout).n("This error message will only be written to the standard output stream");
+    log.now(log.output.syslog.file).c("This error message will only be written to the syslog and file");
 }
 ```
 
@@ -52,30 +55,29 @@ log.color(true);
 Setting the error output level:
 
 ```d
-log.level(log.DEBUGGING);
-log.level(log.ALERT);
-log.level(log.CRITICAL);
-log.level(log.ERROR);
-log.level(log.WARNING);
-log.level(log.NOTICE);
-log.level(log.INFORMATION);
+log.level(log.level.debugging);
+log.level(log.level.alert);
+log.level(log.level.critical);
+log.level(log.level.error);
+log.level(log.level.warning);
+log.level(log.level.notice);
+log.level(log.level.information);
 ```
 
 Assigning a target output:
 
 ```d
-log.output(log.SYSLOG);
-log.output(log.STDOUT);
+log.output(log.output.syslog.stderr.stdout);
 ```
 
 Setup and allowing writing to a file:
 
 ```d
-log.output(log.FILE);
+log.output(log.output.file);
 log.file("./file.log");
 ```
 
-Output of messages to the log:
+Write messages to the log:
 
 ```d
 log.a("Alert message")          =>    log.alert("Alert message");
@@ -87,6 +89,13 @@ log.i("Information message")    =>    log.information("Information message");
 log.d("Debugging message")      =>    log.debugging("Debugging message");
 ```
 
+Write message to specific outputs:
+
+```d
+log.now(log.output.stdout).n("This error message will only be written to the standard output stream");
+log.now(log.output.syslog.file).c("This error message will only be written to the syslog and file");
+```
+
 ## DUB
 
-Add a dependency on `"singlog": "~>0.4.0"`.
+Add a dependency on `"singlog": "~>0.5.0"`.
