@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.5.0](https://git.zhirov.kz/dlang/singlog/compare/v0.4.0...v0.5.0) (2023.07.21)
+
+### New
+
+- Added the ability to output messages to the standard error stream. Now messages above the `WARNING` level will not be output to the `stdout`. To output them, need to use `stderr`
+- Write message to specific outputs via `log.now`
+- Now `log.output` allows to set the output as an argument
+- Now `log.level` allows to set the level as an argument
+
+### Bug fixes
+
+- Fixed streams redirection in Windows
+
 ## [v0.4.0](https://git.zhirov.kz/dlang/singlog/compare/v0.3.2...v0.4.0) (2023.06.07)
 
 - Part of the code has been changed/rewritten

@@ -1,8 +1,9 @@
 module singlog;
 
-version(Windows)
+version(Windows) {
     import core.sys.windows.windows;
-else version(Posix)
+    import std.utf : toUTF8, toUTF16z;
+} else version(Posix)
     import core.sys.posix.syslog;
 
 import std.string;
@@ -23,17 +24,15 @@ alias log = Log.msg;
     // Setting the status of color text output
     log.color(true);
     // Setting the error output level
-    log.level(log.DEBUGGING);
-    log.level(log.ALERT);
-    log.level(log.CRITICAL);
-    log.level(log.ERROR);
-    log.level(log.WARNING);
-    log.level(log.NOTICE);
-    log.level(log.INFORMATION);
+    log.level(log.level.debugging);
+    log.level(log.level.alert);
+    log.level(log.level.critical);
+    log.level(log.level.error);
+    log.level(log.level.warning);
+    log.level(log.level.notice);
+    log.level(log.level.information);
     // Assigning a target output
-    log.output(log.SYSLOG);
-    log.output(log.STDOUT);
-    log.output(log.FILE);
+    log.output(log.output.syslog.stderr.stdout.file);
     // Setup and allowing writing to a file
     log.file("./file.log");
     // Output of messages to the log
@@ -44,6 +43,8 @@ alias log = Log.msg;
     log.warning("Warning message");
     log.notice("Notice message");
     log.informations("Information message");
+    // Write message to specific outputs
+    log.now(log.output.stdout.file).informations("Information message");
     ---
 +/
 class Log {
@@ -67,7 +68,6 @@ version(Windows) {
     ];
 
     void writesyslog(string message, WORD priority) {
-        import std.utf: toUTF16z;
         auto wMessage = message.toUTF16z();
         HANDLE handleEventLog = RegisterEventSourceW(NULL, this._name.ptr);
 
@@ -88,30 +88,59 @@ version(Windows) {
         FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN     // white
     ];
 
-    void colorTextOutput(string time, wstring message, int priority) {
-        HANDLE handle =  GetStdHandle(STD_OUTPUT_HANDLE);
+    void colorTextOutput(HANDLE handle, string time, string message, int priority) {
         CONSOLE_SCREEN_BUFFER_INFO defaultConsole;
         GetConsoleScreenBufferInfo(handle, &defaultConsole);
 
-        writef("%s ", time);
-        SetConsoleTextAttribute(handle, this._color[priority] | FOREGROUND_INTENSITY);
-        write(this._type[priority]);
-        SetConsoleTextAttribute(handle, this._color[priority]);
-        WriteConsoleW(handle, message.ptr, cast(DWORD)message.length, NULL, NULL);
-        SetConsoleTextAttribute(handle, defaultConsole.wAttributes);
+        wstring wTime = "%s ".format(time).to!wstring;
+        wstring wType = this._type[priority].to!wstring;
+        wstring wMessage = " %s\n".format(message).to!wstring;
+
+        switch (GetFileType(handle)) {
+            case FILE_TYPE_CHAR:
+                WriteConsoleW(handle, wTime.ptr, cast(DWORD)wTime.length, NULL, NULL);
+                SetConsoleTextAttribute(handle, this._color[priority] | FOREGROUND_INTENSITY);
+                WriteConsoleW(handle, wType.ptr, cast(DWORD)wType.length, NULL, NULL);
+                SetConsoleTextAttribute(handle, this._color[priority]);
+                WriteConsoleW(handle, wMessage.ptr, cast(DWORD)wMessage.length, NULL, NULL);
+                SetConsoleTextAttribute(handle, defaultConsole.wAttributes);
+                break;
+            case FILE_TYPE_PIPE, FILE_TYPE_DISK:
+                auto utf8Message = (wTime ~ wType ~ wMessage).toUTF8;
+                WriteFile(handle, utf8Message.ptr, cast(DWORD)utf8Message.length, NULL, NULL);
+                break;
+            default:
+                writesyslog("Unknown output file", _sysPriorityOS[_sysPriority[ERROR]]);
+        }
     }
 
-    void defaultTextOutput(string time, wstring message, int priority) {
-        HANDLE handle =  GetStdHandle(STD_OUTPUT_HANDLE);
-        writef("%s %s", time, this._type[priority]);
-        WriteConsoleW(handle, message.ptr, cast(DWORD)message.length, NULL, NULL);
+    void defaultTextOutput(HANDLE handle, string time, string message, int priority) {
+        wstring wMessage = "%s %s %s\n".format(time, this._type[priority], message).to!wstring;
+        switch (GetFileType(handle)) {
+            case FILE_TYPE_CHAR:
+                WriteConsoleW(handle, wMessage.ptr, cast(DWORD)wMessage.length, NULL, NULL);
+                break;
+            case FILE_TYPE_PIPE, FILE_TYPE_DISK:
+                auto utf8Message = wMessage.toUTF8;
+                WriteFile(handle, utf8Message.ptr, cast(DWORD)utf8Message.length, NULL, NULL);
+                break;
+            default:
+                writesyslog("Unknown output file", _sysPriorityOS[_sysPriority[ERROR]]);
+        }
     }
 
     void writestdout(string time, string message, int priority) {
-        wstring wMessage = " %s\n".format(message).to!wstring;
+        HANDLE handle =  GetStdHandle(STD_OUTPUT_HANDLE);
         this._ccolor ?
-            colorTextOutput(time, wMessage, priority) :
-                defaultTextOutput(time, wMessage, priority);
+            colorTextOutput(handle, time, message, priority) :
+                defaultTextOutput(handle, time, message, priority);
+    }
+
+    void writestderr(string time, string message, int priority) {
+        HANDLE handle =  GetStdHandle(STD_ERROR_HANDLE);
+        this._ccolor ?
+            colorTextOutput(handle, time, message, priority) :
+                defaultTextOutput(handle, time, message, priority);
     }
 
 } else version(Posix) {
@@ -139,6 +168,13 @@ version(Windows) {
 
     void writestdout(string time, string message, int priority) {
         writefln("%s %s",
+                time,
+                (this._ccolor ? this._color[priority] : "%s %s").format(this._type[priority], message)
+        );
+    }
+
+    void writestderr(string time, string message, int priority) {
+        stderr.writefln("%s %s",
                 time,
                 (this._ccolor ? this._color[priority] : "%s %s").format(this._type[priority], message)
         );
@@ -172,23 +208,29 @@ version(Windows) {
     public enum {
         SYSLOG = 1,
         STDOUT = 2,
-        FILE = 4
+        STDERR = 4,
+        FILE = 8
     }
 
+    int _nowoutput = 0;
     int _output = STDOUT;
     int _priority = INFORMATION;
 
     void writelog(string message, int priority) {
         string time;
+        int output = this._nowoutput ? this._nowoutput : this._output;
+        this._nowoutput = 0;
         if (this._priority > priority)
             return;
-        if (this._output & 1)
+        if (output & 1)
             writesyslog(message, _sysPriorityOS[_sysPriority[priority]]);
-        if (this._output & 6)
+        if (output & 14)
             time = Clock.currTime().format("%Y.%m.%d %H:%M:%S");
-        if (this._output & 2)
+        if (output & 2 && priority >= WARNING)
             writestdout(time, message, priority);
-        if (this._output & 4)
+        if (output & 4 && priority <= ERROR)
+            writestderr(time, message, priority);
+        if (output & 8)
             writefile(time, message, priority);
     }
 
@@ -208,7 +250,7 @@ version(Windows) {
             this._writeToFile = true;
         } catch (Exception e) {
             this._writeToFile = false;
-            this.error("Unable to open the log file " ~ this._path);
+            this.now(output.stderr).error("Unable to open the log file " ~ this._path);
             this.information(e);
             return;
         }
@@ -217,7 +259,7 @@ version(Windows) {
             file.writefln("%s %s %s", time, this._type[priority], message);
         } catch (Exception e) {
             this._writeToFile = false;
-            this.error("Unable to write to the log file " ~ this._path);
+            this.now(output.stderr).error("Unable to write to the log file " ~ this._path);
             this.information(e);
             return;
         }
@@ -226,12 +268,65 @@ version(Windows) {
             file.close();
         } catch (Exception e) {
             this._writeToFile = false;
-            this.error("Unable to close the log file " ~ this._path);
+            this.now(output.stderr).error("Unable to close the log file " ~ this._path);
             this.information(e);
             return;
         }
     }
-    
+
+    struct Output {
+        int _output = STDOUT;
+        int _newoutput = 0;
+
+        int output() { return this._newoutput ? this._newoutput : this._output; }
+    public:
+        Output syslog() { this._newoutput |= SYSLOG; return this; }
+        Output stdout() { this._newoutput |= STDOUT; return this; }
+        Output stderr() { this._newoutput |= STDERR; return this; }
+        Output file() { this._newoutput |= FILE; return this; }
+    }
+
+    struct Level {
+    public:
+        int debugging() { return DEBUGGING; }
+        int alert() { return ALERT; }
+        int critical() { return CRITICAL; }
+        int error() { return ERROR; }
+        int warning() { return WARNING; }
+        int notice() { return NOTICE; }
+        int information() { return INFORMATION; }
+
+        alias d = debugging;
+        alias a = alert;
+        alias c = critical;
+        alias e = error;
+        alias w = warning;
+        alias n = notice;
+        alias i = information;
+    }
+
+    struct Now {
+        this(Output outs) {
+            _log._nowoutput = outs.output();
+        }
+
+    public:
+        void alert(T)(T message) { _log.alert(message); }
+        void critical(T)(T message) { _log.critical(message); }
+        void error(T)(T message) { _log.error(message); }
+        void warning(T)(T message) { _log.warning(message); }
+        void notice(T)(T message) { _log.notice(message); }
+        void information(T)(T message) { _log.information(message); }
+        void debugging(T)(T message) { _log.debugging(message); }
+
+        alias a = alert;
+        alias c = critical;
+        alias e = error;
+        alias w = warning;
+        alias n = notice;
+        alias i = information;
+        alias d = debugging;
+    }
 public:
     @property static Log msg() {
         if (this._log is null)
@@ -240,6 +335,12 @@ public:
         return this._log;
     }
 
+    Output output() { return Output(); }
+    Level level() { return Level(); }
+    Now now(Output outs) { return Now(outs); }
+
+    Log output(Output outs) { this._output = outs.output(); return this._log; }
+    deprecated("Use passing the argument as a `log.output.<outs>` object")
     Log output(int outs) { this._output = outs; return this._log; }
     Log program(string name) { this._name = name.to!wstring; return this._log; }
     Log file(string path) { this._path = path; return this._log; }
