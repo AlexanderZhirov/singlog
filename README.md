@@ -7,13 +7,13 @@
 [![linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://www.linux.org/)
 [![windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://support.microsoft.com/en-US/windows)
 
-# `singlog` - Singleton Logging Module
-
-`singlog` is a singleton logging module written in the D programming language, designed to provide thread-safe, cross-platform logging with flexible output targets. It supports multiple log levels, configurable output destinations (syslog, console, file), and optional colored console output, making it a versatile tool for application logging.
-
 ![output](tests/terminal.png)
 
 ![output](tests/cmd.png)
+
+# Singleton Logging Module
+
+`singlog` is a singleton logging module written in the D programming language, designed to provide thread-safe, cross-platform logging with flexible output targets. It supports multiple log levels, configurable output destinations (syslog, console, file), and optional colored console output, making it a versatile tool for application logging.
 
 ## Features
 
