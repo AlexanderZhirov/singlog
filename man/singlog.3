@@ -1,0 +1,111 @@
+.\" Man page for the singlog library
+.TH SINGLOG 3 "March 23, 2025" "singlog" "Programmer's Manual"
+.SH NAME
+singlog \- Singleton logging library with thread-safety and flexible output targets
+
+.SH SYNOPSIS
+.nf
+import singlog;
+
+Log logger = Log.msg;  // Access singleton instance
+log.<method>(<args>);  // Use global alias
+.fi
+
+.SH DESCRIPTION
+The \fBsinglog\fR library provides a thread-safe, singleton-based logging utility designed for cross-platform use on Windows and POSIX systems. It supports multiple output targets (syslog, stdout/stderr, file), configurable log levels, and optional colored console output. The library uses a fluent interface for easy configuration and provides short aliases for common log levels.
+
+.SH FEATURES
+.TP
+.B Thread-safety
+Uses a \fBMutex\fR to ensure safe logging in multi-threaded applications.
+.TP
+.B Cross-platform
+Supports Windows (Event Log, console) and POSIX (syslog, console).
+.TP
+.B Flexible output
+Logs to syslog, stdout/stderr (based on log level), or files.
+.TP
+.B Log levels
+Seven levels: \fBDEBUGGING\fR, \fBALERT\fR, \fBCRITICAL\fR, \fBERROR\fR, \fBWARNING\fR, \fBNOTICE\fR, \fBINFORMATION\fR.
+.TP
+.B Fluent interface
+Chainable configuration for output targets, levels, and more.
+.TP
+.B Colored output
+Optional color support for console messages (STD output only).
+
+.SH METHODS
+.TP
+.B Log.msg
+Returns the singleton instance of the \fBLog\fR class.
+.RS
+Example: \fBauto logger = Log.msg; logger.i("Logger retrieved");\fR
+.RE
+.TP
+.B program(string name)
+Sets the program name for syslog identification. Returns \fBLog\fR for chaining.
+.RS
+Example: \fBlog.program("MyApp").i("Name set");\fR
+.RE
+.TP
+.B file(string path)
+Sets the log file path. Returns \fBLog\fR for chaining.
+.RS
+Example: \fBlog.file("app.log").i("File configured");\fR
+.RE
+.TP
+.B level(int priority)
+Sets the minimum log level. Returns \fBLog\fR for chaining.
+.RS
+Example: \fBlog.level(log.level.warning).w("This shows");\fR
+.RE
+.TP
+.B color(bool condition)
+Enables/disables colored console output. Returns \fBLog\fR for chaining.
+.RS
+Example: \fBlog.color(true).i("Colored output");\fR
+.RE
+.TP
+.B output(Output outs)
+Sets default output targets. Returns \fBLog\fR for chaining.
+.RS
+Example: \fBlog.output(log.output.std.file).i("To console and file");\fR
+.RE
+.TP
+.B now(Output outs)
+Temporarily overrides output targets for the next log call. Returns \fBNow\fR for chaining.
+.RS
+Example: \fBlog.now(log.output.std).n("Temp console output");\fR
+.RE
+.TP
+.B Logging methods
+Log messages at different levels: \fBalert\fR, \fBcritical\fR, \fBerror\fR, \fBwarning\fR, \fBnotice\fR, \fBinformation\fR, \fBdebugging\fR (with aliases \fBa\fR, \fBc\fR, \fBe\fR, \fBw\fR, \fBn\fR, \fBi\fR, \fBd\fR).
+.RS
+Example: \fBlog.e("Error occurred"); log.i(42);\fR
+.RE
+
+.SH EXAMPLES
+Configure and use the logger:
+.nf
+import singlog;
+
+void main() {
+    log.program("MyApp")
+       .color(true)
+       .level(log.level.debugging)
+       .output(log.output.std.file.syslog)
+       .file("myapp.log");
+
+    log.d("Starting in debug mode");
+    log.i("App running");
+    log.e("Error occurred");
+    log.now(log.output.std).n("Temp console message");
+}
+.fi
+
+.SH SEE ALSO
+.BR dmd (1),
+.BR syslog (3)
+
+.SH AUTHOR
+Alexander Zhirov
