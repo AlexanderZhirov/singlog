@@ -265,7 +265,7 @@ version(Windows) {
         ---
     +/
     void writesyslog(string message, int priority) {
-        syslog(_sysPriorityOS[priority], message.toStringz());
+        syslog(priority, message.toStringz());
     }
 }
 
