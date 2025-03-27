@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2025-03-27
+### Fixed
+- Correct transfer of priority when writing to the system log.
+
 ## [1.0.0] - 2025-03-23
 
 ### Added
